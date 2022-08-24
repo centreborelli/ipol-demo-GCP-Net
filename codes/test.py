@@ -70,7 +70,7 @@ def main():
     # configurations
     #################
     device = torch.device('cuda')
-    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
     data_mode = 'REDS4'  # Vid4
     # data_mode = 'Vid4'
     # Vid4: SR
