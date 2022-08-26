@@ -2,7 +2,6 @@
 // https://github.com/chengdazhi/Deformable-Convolution-V2-PyTorch/blob/mmdetection/mmdet/ops/dcn/src/deform_conv_cuda.c
 
 #include <torch/extension.h>
-#include <ATen/DeviceGuard.h>
 
 #include <cmath>
 #include <vector>
@@ -163,7 +162,6 @@ int deform_conv_forward_cuda(at::Tensor input, at::Tensor weight,
 
   shape_check(input, offset, NULL, weight, kH, kW, dH, dW, padH, padW,
               dilationH, dilationW, group, deformable_group);
-  at::DeviceGuard guard(input.device());
 
   input = input.contiguous();
   offset = offset.contiguous();
@@ -268,7 +266,6 @@ int deform_conv_backward_input_cuda(at::Tensor input, at::Tensor offset,
                                     int deformable_group, int im2col_step) {
   shape_check(input, offset, &gradOutput, weight, kH, kW, dH, dW, padH, padW,
               dilationH, dilationW, group, deformable_group);
-  at::DeviceGuard guard(input.device());
 
   input = input.contiguous();
   offset = offset.contiguous();
@@ -385,7 +382,6 @@ int deform_conv_backward_parameters_cuda(
 
   shape_check(input, offset, &gradOutput, gradWeight, kH, kW, dH, dW, padH,
               padW, dilationH, dilationW, group, deformable_group);
-  at::DeviceGuard guard(input.device());
 
   input = input.contiguous();
   offset = offset.contiguous();
@@ -496,7 +492,6 @@ void modulated_deform_conv_cuda_forward(
     const bool with_bias) {
   TORCH_CHECK(input.is_contiguous(), "input tensor has to be contiguous");
   TORCH_CHECK(weight.is_contiguous(), "weight tensor has to be contiguous");
-  at::DeviceGuard guard(input.device());
 
   const int batch = input.size(0);
   const int channels = input.size(1);
@@ -509,10 +504,10 @@ void modulated_deform_conv_cuda_forward(
   const int kernel_w_ = weight.size(3);
 
   if (kernel_h_ != kernel_h || kernel_w_ != kernel_w)
-    AT_ERROR("Input shape and kernel shape won't match: (%d x %d vs %d x %d).",
+    AT_ERROR("Input shape and kernel shape wont match: (%d x %d vs %d x %d).",
              kernel_h_, kernel_w, kernel_h_, kernel_w_);
   if (channels != channels_kernel * group)
-    AT_ERROR("Input shape and kernel channels won't match: (%d vs %d).",
+    AT_ERROR("Input shape and kernel channels wont match: (%d vs %d).",
              channels, channels_kernel * group);
 
   const int height_out =
@@ -578,7 +573,6 @@ void modulated_deform_conv_cuda_backward(
     const bool with_bias) {
   TORCH_CHECK(input.is_contiguous(), "input tensor has to be contiguous");
   TORCH_CHECK(weight.is_contiguous(), "weight tensor has to be contiguous");
-  at::DeviceGuard guard(input.device());
 
   const int batch = input.size(0);
   const int channels = input.size(1);
@@ -589,10 +583,10 @@ void modulated_deform_conv_cuda_backward(
   const int kernel_h_ = weight.size(2);
   const int kernel_w_ = weight.size(3);
   if (kernel_h_ != kernel_h || kernel_w_ != kernel_w)
-    AT_ERROR("Input shape and kernel shape won't match: (%d x %d vs %d x %d).",
+    AT_ERROR("Input shape and kernel shape wont match: (%d x %d vs %d x %d).",
              kernel_h_, kernel_w, kernel_h_, kernel_w_);
   if (channels != channels_kernel * group)
-    AT_ERROR("Input shape and kernel channels won't match: (%d vs %d).",
+    AT_ERROR("Input shape and kernel channels wont match: (%d vs %d).",
              channels, channels_kernel * group);
 
   const int height_out =
@@ -682,4 +676,20 @@ void modulated_deform_conv_cuda_backward(
   grad_output = grad_output.view({grad_output.size(0) * grad_output.size(1),
                                   grad_output.size(2), grad_output.size(3),
                                   grad_output.size(4)});
+}
+
+PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+  m.def("deform_conv_forward_cuda", &deform_conv_forward_cuda,
+        "deform forward (CUDA)");
+  m.def("deform_conv_backward_input_cuda", &deform_conv_backward_input_cuda,
+        "deform_conv_backward_input (CUDA)");
+  m.def("deform_conv_backward_parameters_cuda",
+        &deform_conv_backward_parameters_cuda,
+        "deform_conv_backward_parameters (CUDA)");
+  m.def("modulated_deform_conv_cuda_forward",
+        &modulated_deform_conv_cuda_forward,
+        "modulated deform conv forward (CUDA)");
+  m.def("modulated_deform_conv_cuda_backward",
+        &modulated_deform_conv_cuda_backward,
+        "modulated deform conv backward (CUDA)");
 }
